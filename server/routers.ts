@@ -1,28 +1,128 @@
 import { COOKIE_NAME } from "@shared/const";
+import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
-import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { adminProcedure, protectedProcedure, publicProcedure, router, staffProcedure } from "./_core/trpc";
+import {
+  addToCart,
+  buildWhatsAppMessage,
+  changeOrderStatus,
+  changeRequestStatus,
+  createOrder,
+  createRequest,
+  deleteProduct,
+  ensureCatalogSeed,
+  getAdminOverview,
+  getCart,
+  getCustomerAnalytics,
+  getFavoriteIds,
+  getOrder,
+  getProductBySlug,
+  getRequest,
+  listAdminInventory,
+  listAdminProducts,
+  listAdminRequests,
+  listFavorites,
+  getMyOrders,
+  listAllOrders,
+  listMyRequests,
+  listNotifications,
+  listProducts,
+  listStorageOptions,
+  removeCartItem,
+  toggleFavorite,
+  updateCartItem,
+  updateInventory,
+  upsertProduct,
+} from "./store";
+
+const productCategory = z.enum(["GAME", "MOVIE", "TV_SHOW", "HARDWARE", "OTHER"]);
+const orderStatus = z.enum(["PENDING_ACCEPTANCE", "ACCEPTED", "PREPARING", "READY", "COMPLETED", "REJECTED", "CANCELLED"]);
+const requestStatus = z.enum(["PENDING", "REVIEWING", "AVAILABLE", "REJECTED", "COMPLETED", "CANCELLED"]);
+
+const productInput = z.object({
+  id: z.number().int().positive().optional(),
+  name: z.string().trim().min(2).max(255),
+  category: productCategory,
+  price: z.number().nonnegative().nullable().optional(),
+  availability: z.boolean(),
+  stock: z.number().int().nonnegative().nullable().optional(),
+  unlimitedInventory: z.boolean().optional(),
+  description: z.string().max(5000).optional(),
+  genre: z.string().max(160).optional(),
+  platform: z.string().max(120).optional(),
+  size: z.string().max(80).optional(),
+  developer: z.string().max(160).optional(),
+  publisher: z.string().max(160).optional(),
+  releaseDate: z.string().max(32).optional(),
+  imdbId: z.string().max(32).optional(),
+  imdbUrl: z.string().url().optional(),
+});
 
 export const appRouter = router({
-    // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
-  system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
+      return { success: true } as const;
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  catalog: router({
+    list: publicProcedure.input(z.object({
+      category: productCategory.optional(), search: z.string().max(120).optional(), genre: z.string().max(120).optional(), platform: z.string().max(120).optional(),
+      availableOnly: z.boolean().optional(), sort: z.enum(["popular", "newest", "price-low", "price-high", "name-asc", "name-desc"]).optional(),
+      limit: z.number().int().min(1).max(60).optional(), offset: z.number().int().min(0).optional(),
+    }).optional()).query(({ input }) => listProducts(input)),
+    get: publicProcedure.input(z.object({ slug: z.string().min(1).max(280) })).query(({ input }) => getProductBySlug(input.slug)),
+    seed: adminProcedure.mutation(() => ensureCatalogSeed()),
+    storageOptions: publicProcedure.query(() => listStorageOptions()),
+  }),
+
+  customer: router({
+    favorites: protectedProcedure.query(({ ctx }) => listFavorites(ctx.user.id)),
+    favoriteIds: protectedProcedure.query(({ ctx }) => getFavoriteIds(ctx.user.id)),
+    toggleFavorite: protectedProcedure.input(z.object({ productId: z.number().int().positive() })).mutation(({ ctx, input }) => toggleFavorite(ctx.user.id, input.productId)),
+    cart: protectedProcedure.query(({ ctx }) => getCart(ctx.user.id)),
+    addToCart: protectedProcedure.input(z.object({ productId: z.number().int().positive(), quantity: z.number().int().min(1).max(99) })).mutation(({ ctx, input }) => addToCart(ctx.user.id, input.productId, input.quantity)),
+    updateCartItem: protectedProcedure.input(z.object({ itemId: z.number().int().positive(), quantity: z.number().int().min(0).max(99) })).mutation(({ ctx, input }) => updateCartItem(ctx.user.id, input.itemId, input.quantity)),
+    removeCartItem: protectedProcedure.input(z.object({ itemId: z.number().int().positive() })).mutation(({ ctx, input }) => removeCartItem(ctx.user.id, input.itemId)),
+    checkout: protectedProcedure.input(z.object({ storageRequirement: z.string().min(1).max(120) })).mutation(({ ctx, input }) => createOrder(ctx.user.id, input.storageRequirement)),
+    orders: protectedProcedure.query(({ ctx }) => getMyOrders(ctx.user.id)),
+    order: protectedProcedure.input(z.object({ orderId: z.number().int().positive() })).query(({ ctx, input }) => getOrder(ctx.user.id, input.orderId)),
+    notifications: protectedProcedure.query(({ ctx }) => listNotifications(ctx.user.id)),
+    analytics: protectedProcedure.input(z.object({ month: z.string().regex(/^\d{4}-\d{2}$/) })).query(({ ctx, input }) => getCustomerAnalytics(ctx.user.id, input.month)),
+    whatsapp: protectedProcedure.input(z.object({ orderId: z.number().int().positive() })).query(async ({ ctx, input }) => {
+      const detail = await getOrder(ctx.user.id, input.orderId);
+      if (!detail) throw new Error("Order not found");
+      const message = buildWhatsAppMessage({ customerName: ctx.user.name ?? "Customer", orderId: detail.order.id, items: detail.items, total: detail.order.total, storageRequirement: detail.order.storageRequirement });
+      const phone = process.env.WHATSAPP_BUSINESS_NUMBER ?? "";
+      return { message, url: `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(message)}` };
+    }),
+  }),
+
+  requests: router({
+    mine: protectedProcedure.query(({ ctx }) => listMyRequests(ctx.user.id)),
+    get: protectedProcedure.input(z.object({ requestId: z.number().int().positive() })).query(({ ctx, input }) => getRequest(ctx.user.id, input.requestId)),
+    create: protectedProcedure.input(z.object({
+      type: z.enum(["GAME", "MOVIE", "SERIES"]), title: z.string().trim().min(2).max(255), imdbId: z.string().regex(/^tt\d{7,10}$/).optional(), imdbUrl: z.string().url().optional(),
+      platform: z.string().max(120).optional(), releaseYear: z.number().int().min(1888).max(2200).optional(), quality: z.string().max(80).optional(), requestScope: z.string().max(32).optional(), seasons: z.string().max(120).optional(), notes: z.string().max(5000).optional(),
+    })).mutation(({ ctx, input }) => createRequest(ctx.user.id, input)),
+  }),
+
+  admin: router({
+    overview: staffProcedure.query(() => getAdminOverview()),
+    products: staffProcedure.query(() => listAdminProducts()),
+    productUpsert: staffProcedure.input(productInput).mutation(({ input }) => upsertProduct(input)),
+    productDelete: adminProcedure.input(z.object({ productId: z.number().int().positive() })).mutation(({ input }) => deleteProduct(input.productId)),
+    orders: staffProcedure.query(() => listAllOrders()),
+    order: staffProcedure.input(z.object({ orderId: z.number().int().positive() })).query(({ input }) => getOrder(-1, input.orderId, true)),
+    orderStatus: staffProcedure.input(z.object({ orderId: z.number().int().positive(), status: orderStatus, note: z.string().max(1000).optional() })).mutation(({ ctx, input }) => changeOrderStatus(input.orderId, input.status, ctx.user.id, input.note)),
+    requests: staffProcedure.query(() => listAdminRequests()),
+    requestStatus: staffProcedure.input(z.object({ requestId: z.number().int().positive(), status: requestStatus, adminNotes: z.string().max(2000).optional() })).mutation(({ ctx, input }) => changeRequestStatus(input.requestId, input.status, ctx.user.id, input.adminNotes)),
+    inventory: staffProcedure.query(() => listAdminInventory()),
+    inventoryUpdate: staffProcedure.input(z.object({ productId: z.number().int().positive(), stock: z.number().int().min(0), reserved: z.number().int().min(0) })).mutation(({ input }) => updateInventory(input.productId, input.stock, input.reserved)),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
