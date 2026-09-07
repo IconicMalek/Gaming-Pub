@@ -18,6 +18,7 @@ import {
   getOrder,
   getProductBySlug,
   getRequest,
+  importProductsCsv,
   listAdminInventory,
   listAdminProducts,
   listAdminRequests,
@@ -113,6 +114,7 @@ export const appRouter = router({
   admin: router({
     overview: staffProcedure.query(() => getAdminOverview()),
     products: staffProcedure.query(() => listAdminProducts()),
+    productsImport: staffProcedure.input(z.object({ csv: z.string().min(1).max(2_000_000) })).mutation(({ input }) => importProductsCsv(input.csv)),
     productUpsert: staffProcedure.input(productInput).mutation(({ input }) => upsertProduct(input)),
     productDelete: adminProcedure.input(z.object({ productId: z.number().int().positive() })).mutation(({ input }) => deleteProduct(input.productId)),
     orders: staffProcedure.query(() => listAllOrders()),

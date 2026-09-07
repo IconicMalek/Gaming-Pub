@@ -469,6 +469,65 @@ export async function deleteProduct(id: number) {
   return { success: true };
 }
 
+function parseCsvLine(line: string) {
+  const cells: string[] = [];
+  let cell = "";
+  let quoted = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    if (char === '"' && line[index + 1] === '"') { cell += '"'; index += 1; continue; }
+    if (char === '"') { quoted = !quoted; continue; }
+    if (char === "," && !quoted) { cells.push(cell.trim()); cell = ""; continue; }
+    cell += char;
+  }
+  cells.push(cell.trim());
+  return cells;
+}
+
+export async function importProductsCsv(csv: string) {
+  const lines = csv.replace(/^\uFEFF/, "").split(/\r?\n/).filter((line) => line.trim());
+  if (lines.length < 2) throw new Error("CSV must contain a header and at least one product row");
+  const headers = parseCsvLine(lines[0]).map((header) => header.toLowerCase());
+  if (!headers.includes("name") || !headers.includes("category")) throw new Error("CSV requires name and category columns");
+  const imported: number[] = [];
+  const errors: string[] = [];
+  for (let index = 1; index < lines.length && index <= 500; index += 1) {
+    const values = parseCsvLine(lines[index]);
+    const row = Object.fromEntries(headers.map((header, column) => [header, values[column] ?? ""]));
+    try {
+      const category = row.category.toUpperCase() as ProductCategory;
+      if (!["GAME", "MOVIE", "TV_SHOW", "HARDWARE", "OTHER"].includes(category)) throw new Error("invalid category");
+      const price = row.price ? Number(row.price) : null;
+      const stock = row.stock ? Number(row.stock) : null;
+      if (price !== null && !Number.isFinite(price)) throw new Error("invalid price");
+      if (stock !== null && (!Number.isInteger(stock) || stock < 0)) throw new Error("invalid stock");
+      const product = await upsertProduct({
+        id: row.id ? Number(row.id) : undefined,
+        name: row.name,
+        category,
+        price,
+        availability: ["true", "1", "yes"].includes(row.availability.toLowerCase()),
+        stock,
+        unlimitedInventory: ["true", "1", "yes"].includes(row.unlimitedinventory.toLowerCase()),
+        description: row.description || undefined,
+        genre: row.genre || undefined,
+        platform: row.platform || undefined,
+        size: row.size || undefined,
+        developer: row.developer || undefined,
+        publisher: row.publisher || undefined,
+        releaseDate: row.releasedate || undefined,
+        imdbId: row.imdbid || undefined,
+        imdbUrl: row.imdburl || undefined,
+      });
+      if (product) imported.push(product.id);
+    } catch (error) {
+      errors.push(`Row ${index + 1}: ${error instanceof Error ? error.message : "invalid row"}`);
+    }
+  }
+  if (lines.length > 501) errors.push("Only the first 500 product rows were processed");
+  return { imported: imported.length, errors };
+}
+
 export async function listAdminInventory() {
   const db = await requireDb();
   return db.select({ inventory, product: products }).from(inventory).innerJoin(products, eq(inventory.productId, products.id)).orderBy(asc(products.name));

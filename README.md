@@ -8,7 +8,7 @@ The managed project uses React 19, TypeScript, Vite, Tailwind CSS, shadcn/ui pri
 
 ## Implemented product surface
 
-The customer surface includes the home page, games, movies, series, hardware, global search, product details, cart, checkout, account overview, orders, favorites, requests, settings, order tracking, WhatsApp discussion links, and game/movie/series request forms. The admin surface includes a custom command center with derived overview metrics, product configuration, order status management, request status management, hardware inventory controls, analytics summaries, and secure-configuration guidance.
+The customer surface includes the home page, games, movies, series, hardware, global search, product details, cart, checkout, account overview, orders, favorites, requests, settings, order tracking, WhatsApp discussion links, and game/movie/series request forms. The admin surface includes a custom command center with derived overview metrics, product configuration, validated CSV product import, order status management, request status management, hardware inventory controls, analytics summaries, and secure-configuration guidance.
 
 The seeded game title list comes from the project specification. Seeded titles intentionally have no fabricated price, rating, or stock. They remain unavailable until an authorized administrator configures them. IMDb fields only accept a user-provided identifier or URL and are not synthesized.
 
@@ -44,7 +44,7 @@ The project is prepared for the managed WebDev deployment pipeline and can be ch
 
 ## Known limitations and next configuration
 
-The current session did not expose GitHub, Supabase, or Vercel connectors. The live preview therefore uses the managed WebDev server/database/auth substrate. Realtime order updates use a short polling interval in the current runtime; a Supabase deployment should add Realtime subscriptions to the same order/status-history entities. The specification requests native Next.js; the managed WebDev runtime available in this session scaffolds Vite + React, so the implementation preserves the requested React/TypeScript/Tailwind architecture while using the supported managed runtime rather than creating an unsupported duplicate deployment. A legitimate IMDb API can be added later without changing request storage or validation. Stripe is intentionally not included because the specification requires WhatsApp communication rather than online payment.
+The current session has GitHub, Supabase, Supabase API, and Vercel connectors explicitly disabled. The live preview therefore uses the managed WebDev server/database/auth substrate. Realtime order updates use a short polling interval in the current runtime; a Supabase deployment should add Realtime subscriptions to the same order/status-history entities. The specification requests native Next.js; the managed WebDev runtime available in this session scaffolds Vite + React, so the implementation preserves the requested React/TypeScript/Tailwind architecture while using the supported managed runtime rather than creating an unsupported duplicate deployment. Promotions and discount codes are not enabled in the current business surface; adding them requires explicit pricing policy. A legitimate IMDb API can be added later without changing request storage or validation. Stripe is intentionally not included because the specification requires WhatsApp communication rather than online payment.
 
 ## Asset provenance
 
