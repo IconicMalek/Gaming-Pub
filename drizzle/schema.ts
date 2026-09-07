@@ -24,6 +24,14 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
+export const storeSettings = mysqlTable("storeSettings", {
+  id: int("id").autoincrement().primaryKey(),
+  settingKey: varchar("settingKey", { length: 120 }).notNull().unique(),
+  settingValue: text("settingValue"),
+  updatedBy: int("updatedBy"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 export const categories = mysqlTable("categories", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 64 }).notNull().unique(),

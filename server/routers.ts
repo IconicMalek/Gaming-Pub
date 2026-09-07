@@ -12,12 +12,14 @@ import {
   deleteProduct,
   ensureCatalogSeed,
   getAdminOverview,
+  getAdminSettings,
   getCart,
   getCustomerAnalytics,
   getFavoriteIds,
   getOrder,
   getProductBySlug,
   getRequest,
+  getWhatsAppBusinessNumber,
   importProductsCsv,
   listAdminInventory,
   listAdminProducts,
@@ -33,6 +35,7 @@ import {
   toggleFavorite,
   updateCartItem,
   updateInventory,
+  updateAdminSettings,
   upsertProduct,
 } from "./store";
 
@@ -97,7 +100,7 @@ export const appRouter = router({
       const detail = await getOrder(ctx.user.id, input.orderId);
       if (!detail) throw new Error("Order not found");
       const message = buildWhatsAppMessage({ customerName: ctx.user.name ?? "Customer", orderId: detail.order.id, items: detail.items, total: detail.order.total, storageRequirement: detail.order.storageRequirement });
-      const phone = process.env.WHATSAPP_BUSINESS_NUMBER ?? "";
+      const phone = await getWhatsAppBusinessNumber();
       return { message, url: `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(message)}` };
     }),
   }),
@@ -113,6 +116,8 @@ export const appRouter = router({
 
   admin: router({
     overview: staffProcedure.query(() => getAdminOverview()),
+    settings: staffProcedure.query(() => getAdminSettings()),
+    settingsUpdate: adminProcedure.input(z.object({ whatsappBusinessNumber: z.string().max(32) })).mutation(({ ctx, input }) => updateAdminSettings(ctx.user.id, input)),
     products: staffProcedure.query(() => listAdminProducts()),
     productsImport: staffProcedure.input(z.object({ csv: z.string().min(1).max(2_000_000) })).mutation(({ input }) => importProductsCsv(input.csv)),
     productUpsert: staffProcedure.input(productInput).mutation(({ input }) => upsertProduct(input)),

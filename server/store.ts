@@ -12,6 +12,7 @@ import {
   products,
   requestStatusHistory,
   requests,
+  storeSettings,
   users,
   type OrderStatus,
   type ProductCategory,
@@ -424,6 +425,28 @@ export async function getAdminOverview() {
 export async function listAdminProducts() {
   const db = await requireDb();
   return db.select().from(products).orderBy(desc(products.updatedAt));
+}
+
+export async function getWhatsAppBusinessNumber() {
+  const db = await requireDb();
+  const rows = await db.select({ settingValue: storeSettings.settingValue }).from(storeSettings).where(eq(storeSettings.settingKey, "whatsapp_business_number")).limit(1);
+  return rows[0]?.settingValue ?? process.env.WHATSAPP_BUSINESS_NUMBER ?? "";
+}
+
+export async function getAdminSettings() {
+  return { whatsappBusinessNumber: await getWhatsAppBusinessNumber() };
+}
+
+export function hasValidWhatsAppBusinessNumber(value: string) {
+  return !value.trim() || value.replace(/\D/g, "").length >= 8;
+}
+
+export async function updateAdminSettings(actorId: number, input: { whatsappBusinessNumber: string }) {
+  const whatsappBusinessNumber = input.whatsappBusinessNumber.trim();
+  if (!hasValidWhatsAppBusinessNumber(whatsappBusinessNumber)) throw new Error("WhatsApp number must contain at least 8 digits");
+  const db = await requireDb();
+  await db.insert(storeSettings).values({ settingKey: "whatsapp_business_number", settingValue: whatsappBusinessNumber || null, updatedBy: actorId }).onDuplicateKeyUpdate({ set: { settingValue: whatsappBusinessNumber || null, updatedBy: actorId } });
+  return getAdminSettings();
 }
 
 export async function upsertProduct(input: {

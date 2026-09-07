@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildWhatsAppMessage, isValidOrderTransition, isValidRequestTransition, validateImdb } from "./store";
+import { buildWhatsAppMessage, hasValidWhatsAppBusinessNumber, isValidOrderTransition, isValidRequestTransition, validateImdb } from "./store";
 
 describe("Gaming Pub business rules", () => {
   it("allows only the documented order lifecycle transitions", () => {
@@ -38,5 +38,11 @@ describe("Gaming Pub business rules", () => {
     expect(message).toContain("Configured title × 2 — 125.00 EGP");
     expect(message).toContain("Total: 250.00 EGP");
     expect(message).toContain("communication only; it does not confirm payment");
+  });
+
+  it("validates admin WhatsApp business number configuration", () => {
+    expect(hasValidWhatsAppBusinessNumber("+20 100 123 4567")).toBe(true);
+    expect(hasValidWhatsAppBusinessNumber("1234567")).toBe(false);
+    expect(hasValidWhatsAppBusinessNumber("")).toBe(true);
   });
 });

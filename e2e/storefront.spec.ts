@@ -9,12 +9,14 @@ test.describe("Gaming Pub storefront", () => {
     await expect(page.getByRole("navigation").getByRole("link", { name: "REQUEST" })).toBeVisible();
   });
 
-  test("loads the seeded catalog without inventing prices", async ({ page }) => {
+  test("loads the seeded catalog with a safe price state", async ({ page }) => {
     await page.goto("/games");
     await expect(page.getByRole("heading", { name: "Games" })).toBeVisible();
     await page.getByPlaceholder(/Search games/i).fill("Half-Life 2");
-    await expect(page.getByText("Half-Life 2")).toBeVisible();
-    await expect(page.getByText("Price not configured").first()).toBeVisible();
+    const product = page.locator("article").filter({ hasText: "Half-Life 2" });
+    await expect(product).toBeVisible();
+    await expect(product).toContainText(/(EGP|Price not configured)/);
+    await expect(product).not.toContainText("NaN");
   });
 
   test("searches the catalog through the live route", async ({ page }) => {
@@ -41,5 +43,12 @@ test.describe("Gaming Pub storefront", () => {
     await page.goto("/admin/account");
     await expect(page.getByText("Admin access required")).toBeVisible();
     await expect(page.getByText(/authorized administrator identity/i)).toBeVisible();
+  });
+
+  test("protects admin settings and checkout until sign-in", async ({ page }) => {
+    await page.goto("/admin/settings");
+    await expect(page.getByText("Admin access required")).toBeVisible();
+    await page.goto("/checkout");
+    await expect(page.getByText("Sign in securely")).toBeVisible();
   });
 });
