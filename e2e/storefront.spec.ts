@@ -36,4 +36,10 @@ test.describe("Gaming Pub storefront", () => {
     await page.goto("/account/orders");
     await expect(page.getByText("Sign in securely")).toBeVisible();
   });
+
+  test("protects the dedicated admin account route", async ({ page }) => {
+    await page.goto("/admin/account");
+    await expect(page.getByText("Admin access required")).toBeVisible();
+    await expect(page.getByText(/authorized administrator identity/i)).toBeVisible();
+  });
 });

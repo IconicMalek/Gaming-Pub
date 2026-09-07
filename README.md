@@ -8,7 +8,7 @@ The managed project uses React 19, TypeScript, Vite, Tailwind CSS, shadcn/ui pri
 
 ## Implemented product surface
 
-The customer surface includes the home page, games, movies, series, hardware, global search, product details, cart, checkout, account overview, orders, favorites, requests, settings, order tracking, WhatsApp discussion links, and game/movie/series request forms. The admin surface includes a custom command center with derived overview metrics, product configuration, validated CSV product import, order status management, request status management, hardware inventory controls, analytics summaries, and secure-configuration guidance.
+The customer surface includes the home page, games, movies, series, hardware, global search, product details, cart, checkout, account overview, orders, favorites, requests, settings, order tracking, WhatsApp discussion links, and game/movie/series request forms. The admin surface includes a dedicated protected `/admin/account` identity area, a custom command center with derived overview metrics, product configuration, validated CSV product import, order status management, request status management, hardware inventory controls, analytics summaries, and secure-configuration guidance.
 
 The seeded game title list comes from the project specification. Seeded titles intentionally have no fabricated price, rating, or stock. They remain unavailable until an authorized administrator configures them. IMDb fields only accept a user-provided identifier or URL and are not synthesized.
 

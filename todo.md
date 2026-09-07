@@ -8,7 +8,7 @@
 - [x] Implemented authenticated cart, favorites, order creation, storage selection, server-side total calculation, stock validation, order history, and WhatsApp communication links.
 - [x] Implemented valid order and request lifecycle transition rules.
 - [x] Implemented customer request center with game, movie, series, IMDb identifier validation, and customer isolation.
-- [x] Implemented role-protected admin overview, product, order, request, inventory, analytics, and settings surfaces.
+- [x] Implemented role-protected admin account identity, overview, product, order, request, inventory, analytics, and settings surfaces.
 - [x] Implemented premium dark cinematic storefront styling, responsive navigation, keyboard focus states, reduced-motion handling, metadata, and accessible route shells.
 - [x] Added Vitest business-rule coverage and Playwright public-flow coverage.
 - [x] Verified TypeScript, unit tests, production build, and managed-preview Playwright smoke tests.

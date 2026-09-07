@@ -6,6 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import {
   AccountPage,
+  AdminAccountPage,
   AdminPage,
   CartPage,
   CatalogPage,
@@ -38,6 +39,7 @@ function Router() {
     <Route path="/request/movie"><RequestFormPage type="MOVIE" /></Route>
     <Route path="/request/series"><RequestFormPage type="SERIES" /></Route>
     <Route path="/request" component={RequestCenterPage} />
+    <Route path="/admin/account" component={AdminAccountPage} />
     <Route path="/admin" component={AdminPage} />
     <Route path="/admin/:section" component={AdminPage} />
     <Route path="/404" component={NotFound} />
