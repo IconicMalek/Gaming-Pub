@@ -1,5 +1,8 @@
 # Gaming Pub
 
+**Public repository:** https://github.com/IconicMalek/Gaming-Pub  
+**Live website:** https://3000-ien1d97wl9klpv2ik9k79-4ad06f8a.sg2.manus.computer
+
 Gaming Pub is a production-oriented futuristic storefront for legitimate games, movies, series, and hardware. It is an order-management platform rather than a launcher or a download service. Customers can browse the catalog, save favorites, build a server-validated cart, choose a hard-drive path at checkout, submit orders for review, communicate through generated WhatsApp deep links, track order status, and request unavailable titles. Staff and administrators operate the catalog, order queue, request center, inventory, and derived analytics through the same visual system.
 
 ## Stack
@@ -40,11 +43,11 @@ The Vitest suite covers the order lifecycle, request lifecycle, IMDb validation,
 
 ## Deployment
 
-The project is prepared for the managed WebDev deployment pipeline and can be checkpointed and published from the WebDev tools. Vercel and GitHub were not connected in this session, so no duplicate repository or Vercel project was created and no production deployment was claimed. When those connectors are enabled, connect the existing project rather than creating duplicates, set production secrets server-side, apply the migration, run the same build and browser checks against production, and then commit the checkpointed project.
+The project is published to the public GitHub repository above, and the live managed website URL above is reachable publicly for browsing, authentication, ordering, requests, and WhatsApp order discussion. The managed runtime supplies the server, database, authentication, and storage needed by the current website. No separate Vercel deployment is claimed because the Vercel MCP server is not available in this session.
 
 ## Known limitations and next configuration
 
-The current session has GitHub, Supabase, Supabase API, and Vercel connectors explicitly disabled. The live preview therefore uses the managed WebDev server/database/auth substrate. Realtime order updates use a short polling interval in the current runtime; a Supabase deployment should add Realtime subscriptions to the same order/status-history entities. The specification requests native Next.js; the managed WebDev runtime available in this session scaffolds Vite + React, so the implementation preserves the requested React/TypeScript/Tailwind architecture while using the supported managed runtime rather than creating an unsupported duplicate deployment. Promotions and discount codes are not enabled in the current business surface; adding them requires explicit pricing policy. A legitimate IMDb API can be added later without changing request storage or validation. Stripe is intentionally not included because the specification requires WhatsApp communication rather than online payment.
+The live site uses the managed WebDev server/database/auth substrate. Realtime order updates use a short polling interval in the current runtime; a Supabase deployment should add Realtime subscriptions to the same order/status-history entities. The specification requests native Next.js; the managed WebDev runtime available in this session scaffolds Vite + React, so the implementation preserves the requested React/TypeScript/Tailwind architecture while using the supported managed runtime rather than creating an unsupported duplicate deployment. Promotions and discount codes are not enabled in the current business surface; adding them requires explicit pricing policy. A legitimate IMDb API can be added later without changing request storage or validation. Stripe is intentionally not included because the specification requires WhatsApp communication rather than online payment.
 
 ## Asset provenance
 

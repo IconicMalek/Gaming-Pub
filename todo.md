@@ -12,9 +12,9 @@
 - [x] Implemented premium dark cinematic storefront styling, responsive navigation, keyboard focus states, reduced-motion handling, metadata, and accessible route shells.
 - [x] Added Vitest business-rule coverage and Playwright public-flow coverage.
 - [x] Verified TypeScript, unit tests, production build, and managed-preview Playwright smoke tests.
-- [x] Checked connector configuration explicitly: GitHub is disabled, Supabase is disabled, Supabase API is disabled, and Vercel is disabled. The existing managed project remote contains the commit, while a direct push attempt lacked credentials.
+- [x] Published the verified project to the public GitHub repository `IconicMalek/Gaming-Pub` and verified the repository is non-empty and public.
 - [x] Documented production secret slots and deployment handoff requirements in README.md without placing secrets in source control.
-- [x] Confirmed no publish/deploy tool is available in the current session, so the managed preview checkpoint is the final deployable artifact for this turn.
+- [x] Verified the public managed website URL returns HTTP 200 and linked it from the GitHub repository homepage; no separate Vercel deployment is claimed because its MCP server is unavailable.
 - [x] Saved the verified WebDev checkpoint and prepared the final report content for delivery in this response.
 
 ## Known limitations recorded for handoff
