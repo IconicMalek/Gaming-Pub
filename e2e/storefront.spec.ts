@@ -51,4 +51,10 @@ test.describe("Gaming Pub storefront", () => {
     await page.goto("/checkout");
     await expect(page.getByText("Sign in securely")).toBeVisible();
   });
+
+  test("does not expose owner editing on public product details", async ({ page }) => {
+    await page.goto("/products/half-life-2");
+    await expect(page.getByRole("heading", { name: "Half-Life 2" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Edit full listing/i })).toHaveCount(0);
+  });
 });
