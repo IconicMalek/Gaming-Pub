@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
+import LoginPage from "@/pages/LoginPage";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { LanguageProvider } from "./contexts/LanguageContext";
@@ -29,6 +30,7 @@ function Router() {
     <Route path="/series"><CatalogPage category="TV_SHOW" /></Route>
     <Route path="/hardware"><CatalogPage category="HARDWARE" /></Route>
     <Route path="/search" component={SearchPage} />
+    <Route path="/login" component={LoginPage} />
     <Route path="/products/:slug" component={ProductPage} />
     <Route path="/cart" component={CartPage} />
     <Route path="/checkout" component={CheckoutPage} />
