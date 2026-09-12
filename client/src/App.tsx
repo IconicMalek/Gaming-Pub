@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { LanguageProvider } from "./contexts/LanguageContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import {
   AccountPage,
@@ -49,11 +50,13 @@ function Router() {
 
 export default function App() {
   return <ErrorBoundary>
-    <ThemeProvider defaultTheme="dark">
-      <TooltipProvider>
-        <Toaster theme="dark" />
-        <Router />
-      </TooltipProvider>
-    </ThemeProvider>
+    <LanguageProvider>
+      <ThemeProvider defaultTheme="dark">
+        <TooltipProvider>
+          <Toaster theme="dark" />
+          <Router />
+        </TooltipProvider>
+      </ThemeProvider>
+    </LanguageProvider>
   </ErrorBoundary>;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildWhatsAppMessage, hasValidWhatsAppBusinessNumber, isValidOrderTransition, isValidRequestTransition, validateImdb } from "./store";
+import { buildWhatsAppMessage, hasValidWhatsAppBusinessNumber, isValidOrderTransition, isValidRequestTransition, sanitizeRichText, validateImdb } from "./store";
 
 describe("Gaming Pub business rules", () => {
   it("allows only the documented order lifecycle transitions", () => {
@@ -44,5 +44,12 @@ describe("Gaming Pub business rules", () => {
     expect(hasValidWhatsAppBusinessNumber("+20 100 123 4567")).toBe(true);
     expect(hasValidWhatsAppBusinessNumber("1234567")).toBe(false);
     expect(hasValidWhatsAppBusinessNumber("")).toBe(true);
+  });
+
+  it("keeps rich descriptions formatted while removing executable markup", () => {
+    const result = sanitizeRichText('<p><strong>Bold</strong> <a href="https://example.com">link</a></p><script>alert(1)</script>');
+    expect(result).toContain("<strong>Bold</strong>");
+    expect(result).toContain("https://example.com");
+    expect(result).not.toContain("script");
   });
 });

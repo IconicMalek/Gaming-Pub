@@ -51,6 +51,8 @@ export const products = mysqlTable("products", {
   backgroundImage: text("backgroundImage"),
   gallery: json("gallery"),
   availability: boolean("availability").default(false).notNull(),
+  featured: boolean("featured").default(false).notNull(),
+  menuOrder: int("menuOrder").default(0).notNull(),
   stock: int("stock"),
   unlimitedInventory: boolean("unlimitedInventory").default(false).notNull(),
   size: varchar("size", { length: 80 }),

@@ -57,4 +57,16 @@ test.describe("Gaming Pub storefront", () => {
     await expect(page.getByRole("heading", { name: "Half-Life 2" })).toBeVisible();
     await expect(page.getByRole("link", { name: /Edit full listing/i })).toHaveCount(0);
   });
+
+  test("switches the storefront context to Arabic RTL", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "العربية" }).click();
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(page.getByRole("navigation").getByRole("link", { name: "الألعاب" })).toBeVisible();
+  });
+
+  test("protects the full administrator listing editor", async ({ page }) => {
+    await page.goto("/admin/products");
+    await expect(page.getByText("Admin access required")).toBeVisible();
+  });
 });

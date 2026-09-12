@@ -98,6 +98,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .product-card:hover .product-art img { transform: scale(1.05); }
 .art-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.05), rgba(7,10,16,.82)); }
 .product-type { position: absolute; top: 14px; left: 14px; padding: 5px 7px; color: #b9c8d8; background: rgba(7,10,16,.7); border: 1px solid rgba(160,185,215,.16); font: 700 9px "DM Sans"; letter-spacing: .16em; }
+.product-featured { position: absolute; top: 14px; right: 14px; padding: 5px 7px; color: #ffd2ea; background: rgba(232,59,145,.16); border: 1px solid rgba(232,59,145,.45); font: 700 9px "DM Sans"; letter-spacing: .14em; }
 .product-scan { position: absolute; right: 14px; bottom: 14px; width: 46px; height: 2px; background: #4da6ff; box-shadow: 0 0 12px #4da6ff; opacity: .7; }
 .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #546174; }
 .status-dot.on { background: #4da6ff; box-shadow: 0 0 10px rgba(77,166,255,.7); }
@@ -170,3 +171,30 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .admin-quick-link svg:first-child { color: #4da6ff; }
 .admin-quick-link svg:last-child { color: #56677b; }
 .admin-quick-link:hover { color: #fff; border-color: rgba(232,59,145,.4); background: linear-gradient(135deg, rgba(77,166,255,.08), rgba(232,59,145,.07)); transform: translateY(-2px); }
+.language-toggle { min-height: 38px; padding: 0 12px; border: 1px solid rgba(77,166,255,.28); background: rgba(77,166,255,.06); color: #9fc8ef; font: 600 11px "Noto Kufi Arabic", "DM Sans", sans-serif; }
+.language-toggle:hover { color: #fff; border-color: rgba(232,59,145,.5); background: rgba(232,59,145,.08); }
+.rich-editor { border: 1px solid rgba(160,185,215,.17); background: rgba(255,255,255,.025); }
+.rich-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 3px; padding: 6px; border-bottom: 1px solid rgba(160,185,215,.12); background: rgba(7,10,16,.5); }
+.rich-editor-surface { min-height: 150px; padding: 14px; color: #dce4ef; outline: none; line-height: 1.8; }
+.rich-editor-surface:empty::before { content: attr(data-placeholder); color: #566274; pointer-events: none; }
+.rich-content { color: #b8c4d3; line-height: 1.8; }
+.rich-content p { margin: 0 0 12px; }
+.rich-content ul, .rich-content ol { margin: 0 0 14px; padding-inline-start: 24px; }
+.rich-content a { color: #7dd3fc; text-decoration: underline; text-underline-offset: 3px; }
+.media-cover-preview { min-height: 210px; border: 1px dashed rgba(77,166,255,.25); background: rgba(255,255,255,.02); overflow: hidden; display: grid; place-items: center; }
+.media-cover-preview img { width: 100%; height: 260px; object-fit: cover; }
+.media-empty { min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: #667487; font-size: 12px; border: 1px dashed rgba(160,185,215,.16); }
+.media-gallery-item { position: relative; aspect-ratio: 1; overflow: hidden; border: 1px solid rgba(160,185,215,.14); background: #0d141e; }
+.media-gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+.media-remove { position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; display: grid; place-items: center; background: rgba(7,10,16,.82); border: 1px solid rgba(255,94,110,.5); color: #ff7a87; }
+.menu-order-row { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 7px 10px; border: 1px solid rgba(160,185,215,.12); background: rgba(255,255,255,.018); cursor: grab; }
+.menu-order-row:active { cursor: grabbing; }
+.menu-order-row:hover, .menu-order-row.dragging { border-color: rgba(77,166,255,.45); background: rgba(77,166,255,.06); transform: translateX(3px); }
+html[dir="rtl"] body { font-family: "Noto Sans Arabic", "DM Sans", sans-serif; }
+html[dir="rtl"] .font-display, html[dir="rtl"] .eyebrow { font-family: "Noto Kufi Arabic", "Noto Sans Arabic", sans-serif; }
+html[dir="rtl"] .nav-link::after { left: auto; right: 0; }
+html[dir="rtl"] .account-nav { border-left: 0; border-right: 2px solid transparent; }
+html[dir="rtl"] .account-nav:hover, html[dir="rtl"] .account-nav.active { border-right-color: #4da6ff; }
+html[dir="rtl"] .data-table th, html[dir="rtl"] .data-table td { text-align: right; }
+html[dir="rtl"] .product-type { left: auto; right: 14px; }
+html[dir="rtl"] .admin-float { right: auto; left: 18px; }

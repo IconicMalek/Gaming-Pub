@@ -20,6 +20,7 @@ import {
 } from "../drizzle/schema";
 import { CATALOG_GAME_TITLES, slugify } from "../shared/catalog";
 import { getDb } from "./db";
+import { storagePut } from "./storage";
 
 function requireDb() {
   return getDb().then((db) => {
@@ -30,6 +31,15 @@ function requireDb() {
 
 function money(value: string | number | null | undefined) {
   return value === null || value === undefined ? null : Number(value);
+}
+
+export function sanitizeRichText(value: string) {
+  return value
+    .replace(/<\/?script[^>]*>/gi, "")
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/javascript\s*:/gi, "")
+    .replace(/<(?!\/?(p|br|strong|b|em|i|u|ul|ol|li|a)(\s|>))[^>]*>/gi, "")
+    .trim();
 }
 
 let seedPromise: Promise<void> | null = null;
@@ -75,7 +85,7 @@ export type CatalogInput = {
   genre?: string;
   platform?: string;
   availableOnly?: boolean;
-  sort?: "popular" | "newest" | "price-low" | "price-high" | "name-asc" | "name-desc";
+  sort?: "popular" | "menu" | "newest" | "price-low" | "price-high" | "name-asc" | "name-desc";
   limit?: number;
   offset?: number;
 };
@@ -93,16 +103,17 @@ export async function listProducts(input: CatalogInput = {}) {
   if (input.platform) predicates.push(like(products.platform, `%${input.platform}%`));
   if (input.availableOnly) predicates.push(eq(products.availability, true));
 
-  const orderBy = input.sort === "price-low" ? asc(products.price)
-    : input.sort === "price-high" ? desc(products.price)
-    : input.sort === "name-asc" ? asc(products.name)
-    : input.sort === "name-desc" ? desc(products.name)
-    : input.sort === "newest" ? desc(products.createdAt)
-    : desc(products.createdAt);
+  const orderBy = input.sort === "price-low" ? [asc(products.price)]
+    : input.sort === "price-high" ? [desc(products.price)]
+    : input.sort === "name-asc" ? [asc(products.name)]
+    : input.sort === "name-desc" ? [desc(products.name)]
+    : input.sort === "newest" ? [desc(products.createdAt)]
+    : input.category === "GAME" ? [desc(products.featured), asc(products.menuOrder), desc(products.createdAt)]
+    : [desc(products.createdAt)];
 
   return db.select().from(products)
     .where(predicates.length ? and(...predicates) : undefined)
-    .orderBy(orderBy)
+    .orderBy(...orderBy)
     .limit(Math.min(input.limit ?? 24, 60))
     .offset(Math.max(input.offset ?? 0, 0));
 }
@@ -457,6 +468,16 @@ export async function upsertProduct(input: {
   availability: boolean;
   stock?: number | null;
   unlimitedInventory?: boolean;
+  featured?: boolean;
+  menuOrder?: number;
+  coverImage?: string | null;
+  backgroundImage?: string | null;
+  gallery?: string[] | null;
+  imdbRating?: number | null;
+  imdbId?: string;
+  imdbUrl?: string;
+  imdbTitle?: string;
+  imdbYear?: string;
   description?: string;
   genre?: string;
   platform?: string;
@@ -464,19 +485,21 @@ export async function upsertProduct(input: {
   developer?: string;
   publisher?: string;
   releaseDate?: string;
-  imdbId?: string;
-  imdbUrl?: string;
 }) {
   if (input.price !== null && input.price !== undefined && input.price < 0) throw new Error("Price cannot be negative");
   if (input.stock !== null && input.stock !== undefined && (!Number.isInteger(input.stock) || input.stock < 0)) throw new Error("Stock must be a non-negative integer");
+  if (input.menuOrder !== undefined && (!Number.isInteger(input.menuOrder) || input.menuOrder < 0)) throw new Error("Menu order must be a non-negative integer");
+  if (input.imdbRating !== null && input.imdbRating !== undefined && (input.imdbRating < 0 || input.imdbRating > 10)) throw new Error("IMDb rating must be between 0 and 10");
   validateImdb(input.imdbId, input.imdbUrl);
   const db = await requireDb();
   const data = {
     name: input.name.trim(), category: input.category, price: input.price === null || input.price === undefined ? null : input.price.toFixed(2),
     availability: Boolean(input.availability && input.price !== null && input.price !== undefined), stock: input.stock ?? null,
-    unlimitedInventory: Boolean(input.unlimitedInventory), description: input.description ?? null, genre: input.genre ?? null, platform: input.platform ?? null,
+    unlimitedInventory: Boolean(input.unlimitedInventory), featured: Boolean(input.featured), menuOrder: input.menuOrder ?? 0,
+    coverImage: input.coverImage ?? null, backgroundImage: input.backgroundImage ?? null, gallery: input.gallery ?? null,
+    description: input.description ? sanitizeRichText(input.description) : null, genre: input.genre ?? null, platform: input.platform ?? null,
     size: input.size ?? null, developer: input.developer ?? null, publisher: input.publisher ?? null, releaseDate: input.releaseDate ?? null,
-    imdbId: input.imdbId ?? null, imdbUrl: input.imdbUrl ?? null,
+    imdbId: input.imdbId ?? null, imdbUrl: input.imdbUrl ?? null, imdbRating: input.imdbRating === null || input.imdbRating === undefined ? null : input.imdbRating.toFixed(1), imdbTitle: input.imdbTitle ?? null, imdbYear: input.imdbYear ?? null,
   } as const;
   if (input.id) {
     await db.update(products).set(data).where(eq(products.id, input.id));
@@ -490,6 +513,51 @@ export async function deleteProduct(id: number) {
   const db = await requireDb();
   await db.delete(products).where(eq(products.id, id));
   return { success: true };
+}
+
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
+
+export async function uploadProductMedia(productId: number, files: Array<{ kind: "cover" | "gallery"; fileName: string; mimeType: string; data: string }>) {
+  const db = await requireDb();
+  const product = await getProductById(productId);
+  if (!product) throw new Error("Product not found");
+  if (files.length > 8) throw new Error("Upload up to 8 images at a time");
+  const uploaded: Array<{ kind: "cover" | "gallery"; url: string }> = [];
+  for (const file of files) {
+    if (!ALLOWED_IMAGE_TYPES.has(file.mimeType)) throw new Error("Only JPG, PNG, WEBP, and AVIF images are supported");
+    const match = file.data.match(/^data:[^;]+;base64,(.+)$/);
+    if (!match) throw new Error("Invalid image payload");
+    const buffer = Buffer.from(match[1], "base64");
+    if (buffer.length > 8 * 1024 * 1024) throw new Error("Each image must be 8 MB or smaller");
+    const extension = file.mimeType.split("/")[1] === "jpeg" ? "jpg" : file.mimeType.split("/")[1];
+    const result = await storagePut(`gaming-pub/products/${productId}/${file.kind}-${nanoid(8)}.${extension}`, buffer, file.mimeType);
+    uploaded.push({ kind: file.kind, url: result.url });
+  }
+  const gallery = Array.isArray(product.gallery) ? product.gallery.filter((value): value is string => typeof value === "string") : [];
+  const cover = uploaded.find((file) => file.kind === "cover")?.url;
+  const newGallery = [...gallery, ...uploaded.filter((file) => file.kind === "gallery").map((file) => file.url)];
+  await db.update(products).set({ coverImage: cover ?? product.coverImage, gallery: newGallery }).where(eq(products.id, productId));
+  return getProductById(productId);
+}
+
+export async function removeProductGalleryImage(productId: number, url: string) {
+  const db = await requireDb();
+  const product = await getProductById(productId);
+  if (!product) throw new Error("Product not found");
+  const gallery = Array.isArray(product.gallery) ? product.gallery.filter((value): value is string => typeof value === "string" && value !== url) : [];
+  await db.update(products).set({ gallery }).where(eq(products.id, productId));
+  return getProductById(productId);
+}
+
+export async function reorderGameMenu(items: Array<{ productId: number; menuOrder: number }>) {
+  const db = await requireDb();
+  await db.transaction(async (tx) => {
+    for (const item of items) {
+      if (!Number.isInteger(item.menuOrder) || item.menuOrder < 0) throw new Error("Invalid menu order");
+      await tx.update(products).set({ menuOrder: item.menuOrder }).where(and(eq(products.id, item.productId), eq(products.category, "GAME")));
+    }
+  });
+  return listAdminProducts();
 }
 
 function parseCsvLine(line: string) {
@@ -522,16 +590,22 @@ export async function importProductsCsv(csv: string) {
       if (!["GAME", "MOVIE", "TV_SHOW", "HARDWARE", "OTHER"].includes(category)) throw new Error("invalid category");
       const price = row.price ? Number(row.price) : null;
       const stock = row.stock ? Number(row.stock) : null;
+      const menuOrder = row.menuorder ? Number(row.menuorder) : 0;
       if (price !== null && !Number.isFinite(price)) throw new Error("invalid price");
       if (stock !== null && (!Number.isInteger(stock) || stock < 0)) throw new Error("invalid stock");
+      if (!Number.isInteger(menuOrder) || menuOrder < 0) throw new Error("invalid menu order");
       const product = await upsertProduct({
         id: row.id ? Number(row.id) : undefined,
         name: row.name,
         category,
         price,
-        availability: ["true", "1", "yes"].includes(row.availability.toLowerCase()),
+        availability: ["true", "1", "yes"].includes((row.availability ?? "").toLowerCase()),
         stock,
-        unlimitedInventory: ["true", "1", "yes"].includes(row.unlimitedinventory.toLowerCase()),
+        unlimitedInventory: ["true", "1", "yes"].includes((row.unlimitedinventory ?? "").toLowerCase()),
+        featured: ["true", "1", "yes"].includes((row.featured ?? "").toLowerCase()),
+        menuOrder,
+        coverImage: row.coverimage || undefined,
+        gallery: row.gallery ? row.gallery.split("|").map((url) => url.trim()).filter(Boolean) : undefined,
         description: row.description || undefined,
         genre: row.genre || undefined,
         platform: row.platform || undefined,
