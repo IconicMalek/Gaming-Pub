@@ -40,6 +40,19 @@ describe("Gaming Pub business rules", () => {
     expect(message).toContain("communication only; it does not confirm payment");
   });
 
+  it("includes hardware cart components in the WhatsApp order message", () => {
+    const message = buildWhatsAppMessage({
+      customerName: "Omar",
+      orderId: 73,
+      items: [{ productName: "1TB NVMe SSD", quantity: 1, unitPrice: "1850.00" }, { productName: "Gaming Headset", quantity: 2, unitPrice: "900.00" }],
+      total: "3650.00",
+      storageRequirement: "OWN_HDD",
+    });
+    expect(message).toContain("1TB NVMe SSD × 1 — 1850.00 EGP");
+    expect(message).toContain("Gaming Headset × 2 — 900.00 EGP");
+    expect(message).toContain("Total: 3650.00 EGP");
+  });
+
   it("validates admin WhatsApp business number configuration", () => {
     expect(hasValidWhatsAppBusinessNumber("+20 100 123 4567")).toBe(true);
     expect(hasValidWhatsAppBusinessNumber("1234567")).toBe(false);
