@@ -112,7 +112,8 @@ export const appRouter = router({
       if (!detail) throw new Error("Order not found");
       const message = buildWhatsAppMessage({ customerName: ctx.user.name ?? "Customer", orderId: detail.order.id, items: detail.items, total: detail.order.total, storageRequirement: detail.order.storageRequirement });
       const phone = await getWhatsAppBusinessNumber();
-      return { message, url: `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(message)}` };
+      const normalizedPhone = phone.replace(/\D/g, "");
+      return { message, url: normalizedPhone ? `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}` : undefined };
     }),
   }),
 
