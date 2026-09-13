@@ -444,19 +444,45 @@ export async function getWhatsAppBusinessNumber() {
   return rows[0]?.settingValue ?? process.env.WHATSAPP_BUSINESS_NUMBER ?? "";
 }
 
+export const DEFAULT_WHATSAPP_TEMPLATES = {
+  en: "Hello, I would like to discuss my order.\n\nCustomer: {{customerName}}\nOrder ID: {{orderId}}\n\nProducts:\n{{items}}\n\nTotal: {{total}} EGP\n{{storage}}\n\nThis message is for communication only; it does not confirm payment.",
+  ar: "مرحباً، أود مناقشة طلبي.\n\nالعميل: {{customerName}}\nرقم الطلب: {{orderId}}\n\nالمنتجات:\n{{items}}\n\nالإجمالي: {{total}} جنيه مصري\n{{storage}}\n\nهذه الرسالة للتواصل فقط ولا تؤكد الدفع.",
+} as const;
+
+const WHATSAPP_TEMPLATE_KEYS = ["{{customerName}}", "{{orderId}}", "{{items}}", "{{total}}", "{{storage}}"] as const;
+
+export function validateWhatsAppTemplate(template: string) {
+  if (template.trim().length < 20 || template.length > 10000) throw new Error("WhatsApp template must be between 20 and 10,000 characters");
+  const missing = WHATSAPP_TEMPLATE_KEYS.filter((key) => !template.includes(key));
+  if (missing.length) throw new Error(`WhatsApp template is missing: ${missing.join(", ")}`);
+  return template.trim();
+}
+
+export async function getWhatsAppTemplate(language: "en" | "ar") {
+  const db = await requireDb();
+  const key = language === "ar" ? "whatsapp_template_ar" : "whatsapp_template_en";
+  const rows = await db.select({ settingValue: storeSettings.settingValue }).from(storeSettings).where(eq(storeSettings.settingKey, key)).limit(1);
+  return rows[0]?.settingValue || DEFAULT_WHATSAPP_TEMPLATES[language];
+}
+
 export async function getAdminSettings() {
-  return { whatsappBusinessNumber: await getWhatsAppBusinessNumber() };
+  const [whatsappBusinessNumber, englishTemplate, arabicTemplate] = await Promise.all([getWhatsAppBusinessNumber(), getWhatsAppTemplate("en"), getWhatsAppTemplate("ar")]);
+  return { whatsappBusinessNumber, englishTemplate, arabicTemplate };
 }
 
 export function hasValidWhatsAppBusinessNumber(value: string) {
   return !value.trim() || value.replace(/\D/g, "").length >= 8;
 }
 
-export async function updateAdminSettings(actorId: number, input: { whatsappBusinessNumber: string }) {
+export async function updateAdminSettings(actorId: number, input: { whatsappBusinessNumber: string; englishTemplate?: string; arabicTemplate?: string }) {
   const whatsappBusinessNumber = input.whatsappBusinessNumber.trim();
   if (!hasValidWhatsAppBusinessNumber(whatsappBusinessNumber)) throw new Error("WhatsApp number must contain at least 8 digits");
+  const englishTemplate = validateWhatsAppTemplate(input.englishTemplate ?? DEFAULT_WHATSAPP_TEMPLATES.en);
+  const arabicTemplate = validateWhatsAppTemplate(input.arabicTemplate ?? DEFAULT_WHATSAPP_TEMPLATES.ar);
   const db = await requireDb();
-  await db.insert(storeSettings).values({ settingKey: "whatsapp_business_number", settingValue: whatsappBusinessNumber || null, updatedBy: actorId }).onDuplicateKeyUpdate({ set: { settingValue: whatsappBusinessNumber || null, updatedBy: actorId } });
+  for (const [settingKey, settingValue] of [["whatsapp_business_number", whatsappBusinessNumber || null], ["whatsapp_template_en", englishTemplate], ["whatsapp_template_ar", arabicTemplate]] as const) {
+    await db.insert(storeSettings).values({ settingKey, settingValue, updatedBy: actorId }).onDuplicateKeyUpdate({ set: { settingValue, updatedBy: actorId } });
+  }
   return getAdminSettings();
 }
 
@@ -658,11 +684,10 @@ export async function getCustomerAnalytics(userId: number, month: string) {
   return result;
 }
 
-export function buildWhatsAppMessage(input: { customerName: string; orderId: number; items: Array<{ productName: string; quantity: number; unitPrice: string | number }>; total: string | number; storageRequirement: string | null }) {
-  const storage = input.storageRequirement === "OWN_HDD" ? "I already have my own hard drive." : `Storage requirement: ${input.storageRequirement ?? "Not specified"}`;
-  return [
-    "Hello, I would like to discuss my order.", "", `Customer: ${input.customerName}`, `Order ID: ${input.orderId}`, "", "Products:",
-    ...input.items.map((item) => `- ${item.productName} × ${item.quantity} — ${Number(item.unitPrice).toFixed(2)} EGP`), "", `Total: ${Number(input.total).toFixed(2)} EGP`, storage,
-    "", "This message is for communication only; it does not confirm payment.",
-  ].join("\n");
+export function buildWhatsAppMessage(input: { customerName: string; orderId: number; items: Array<{ productName: string; quantity: number; unitPrice: string | number }>; total: string | number; storageRequirement: string | null; language?: "en" | "ar"; template?: string }) {
+  const language = input.language ?? "en";
+  const storage = input.storageRequirement === "OWN_HDD" ? (language === "ar" ? "لدي محرك أقراص صلب خاص بي." : "I already have my own hard drive.") : (language === "ar" ? `متطلبات التخزين: ${input.storageRequirement ?? "غير محدد"}` : `Storage requirement: ${input.storageRequirement ?? "Not specified"}`);
+  const items = input.items.map((item) => `- ${item.productName} × ${item.quantity} — ${Number(item.unitPrice).toFixed(2)} ${language === "ar" ? "جنيه مصري" : "EGP"}`).join("\n");
+  const template = input.template ?? DEFAULT_WHATSAPP_TEMPLATES[language];
+  return template.replaceAll("{{customerName}}", input.customerName).replaceAll("{{orderId}}", String(input.orderId)).replaceAll("{{items}}", items).replaceAll("{{total}}", Number(input.total).toFixed(2)).replaceAll("{{storage}}", storage);
 }

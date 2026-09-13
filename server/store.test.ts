@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildWhatsAppMessage, hasValidWhatsAppBusinessNumber, isValidOrderTransition, isValidRequestTransition, sanitizeRichText, validateImdb } from "./store";
+import { buildWhatsAppMessage, hasValidWhatsAppBusinessNumber, isValidOrderTransition, isValidRequestTransition, sanitizeRichText, validateImdb, validateWhatsAppTemplate } from "./store";
 
 describe("Gaming Pub business rules", () => {
   it("allows only the documented order lifecycle transitions", () => {
@@ -44,6 +44,26 @@ describe("Gaming Pub business rules", () => {
     expect(hasValidWhatsAppBusinessNumber("+20 100 123 4567")).toBe(true);
     expect(hasValidWhatsAppBusinessNumber("1234567")).toBe(false);
     expect(hasValidWhatsAppBusinessNumber("")).toBe(true);
+  });
+
+  it("renders Arabic WhatsApp messages from a safe customizable template", () => {
+    const message = buildWhatsAppMessage({
+      customerName: "Amina",
+      orderId: 42,
+      items: [{ productName: "لعبة", quantity: 1, unitPrice: "125.00" }],
+      total: "125.00",
+      storageRequirement: "OWN_HDD",
+      language: "ar",
+      template: "مرحباً {{customerName}}\nرقم {{orderId}}\n{{items}}\n{{total}}\n{{storage}}",
+    });
+    expect(message).toContain("مرحباً Amina");
+    expect(message).toContain("رقم 42");
+    expect(message).toContain("125.00 جنيه مصري");
+  });
+
+  it("requires all order placeholders in customized templates", () => {
+    expect(() => validateWhatsAppTemplate("Hello {{customerName}} only")).toThrow("missing");
+    expect(() => validateWhatsAppTemplate("Hello {{customerName}} {{orderId}} {{items}} {{total}} {{storage}}" )).not.toThrow();
   });
 
   it("keeps rich descriptions formatted while removing executable markup", () => {

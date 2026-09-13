@@ -13,6 +13,7 @@ import {
   ensureCatalogSeed,
   getAdminOverview,
   getAdminSettings,
+  getWhatsAppTemplate,
   getCart,
   getCustomerAnalytics,
   getFavoriteIds,
@@ -107,10 +108,10 @@ export const appRouter = router({
     order: protectedProcedure.input(z.object({ orderId: z.number().int().positive() })).query(({ ctx, input }) => getOrder(ctx.user.id, input.orderId)),
     notifications: protectedProcedure.query(({ ctx }) => listNotifications(ctx.user.id)),
     analytics: protectedProcedure.input(z.object({ month: z.string().regex(/^\d{4}-\d{2}$/) })).query(({ ctx, input }) => getCustomerAnalytics(ctx.user.id, input.month)),
-    whatsapp: protectedProcedure.input(z.object({ orderId: z.number().int().positive() })).query(async ({ ctx, input }) => {
+    whatsapp: protectedProcedure.input(z.object({ orderId: z.number().int().positive(), language: z.enum(["en", "ar"]).default("en") })).query(async ({ ctx, input }) => {
       const detail = await getOrder(ctx.user.id, input.orderId);
       if (!detail) throw new Error("Order not found");
-      const message = buildWhatsAppMessage({ customerName: ctx.user.name ?? "Customer", orderId: detail.order.id, items: detail.items, total: detail.order.total, storageRequirement: detail.order.storageRequirement });
+      const message = buildWhatsAppMessage({ customerName: ctx.user.name ?? "Customer", orderId: detail.order.id, items: detail.items, total: detail.order.total, storageRequirement: detail.order.storageRequirement, language: input.language, template: await getWhatsAppTemplate(input.language) });
       const phone = await getWhatsAppBusinessNumber();
       const normalizedPhone = phone.replace(/\D/g, "");
       return { message, url: normalizedPhone ? `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}` : undefined };
@@ -129,7 +130,7 @@ export const appRouter = router({
   admin: router({
     overview: staffProcedure.query(() => getAdminOverview()),
     settings: staffProcedure.query(() => getAdminSettings()),
-    settingsUpdate: adminProcedure.input(z.object({ whatsappBusinessNumber: z.string().max(32) })).mutation(({ ctx, input }) => updateAdminSettings(ctx.user.id, input)),
+    settingsUpdate: adminProcedure.input(z.object({ whatsappBusinessNumber: z.string().max(32), englishTemplate: z.string().min(20).max(10000), arabicTemplate: z.string().min(20).max(10000) })).mutation(({ ctx, input }) => updateAdminSettings(ctx.user.id, input)),
     products: staffProcedure.query(() => listAdminProducts()),
     productsImport: adminProcedure.input(z.object({ csv: z.string().min(1).max(2_000_000) })).mutation(({ input }) => importProductsCsv(input.csv)),
     productUpsert: adminProcedure.input(productInput).mutation(({ input }) => upsertProduct(input)),
