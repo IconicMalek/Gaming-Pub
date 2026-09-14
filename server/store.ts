@@ -299,11 +299,12 @@ export async function getOrder(userId: number, orderId: number, admin = false) {
   const orderRows = await db.select().from(orders).where(and(eq(orders.id, orderId), admin ? undefined : eq(orders.userId, userId))).limit(1);
   const order = orderRows[0];
   if (!order) return null;
-  const [items, history] = await Promise.all([
+  const [items, history, customerRows] = await Promise.all([
     db.select().from(orderItems).where(eq(orderItems.orderId, orderId)).orderBy(asc(orderItems.id)),
     db.select().from(orderStatusHistory).where(eq(orderStatusHistory.orderId, orderId)).orderBy(asc(orderStatusHistory.createdAt)),
+    admin ? db.select({ id: users.id, name: users.name, email: users.email, phone: users.phone, loginMethod: users.loginMethod, createdAt: users.createdAt }).from(users).where(eq(users.id, order.userId)).limit(1) : Promise.resolve([]),
   ]);
-  return { order, items, history };
+  return { order, items, history, customer: admin ? customerRows[0] ?? null : undefined };
 }
 
 const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {

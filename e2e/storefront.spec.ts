@@ -79,4 +79,9 @@ test.describe("Gaming Pub storefront", () => {
     await page.goto("/admin/products");
     await expect(page.getByText("Admin access required")).toBeVisible();
   });
+
+  test("protects the administrator order queue", async ({ page }) => {
+    await page.goto("/admin/orders");
+    await expect(page.getByText("Admin access required")).toBeVisible();
+  });
 });
