@@ -66,6 +66,7 @@ export const products = mysqlTable("products", {
   imdbRating: decimal("imdbRating", { precision: 3, scale: 1 }),
   imdbTitle: varchar("imdbTitle", { length: 255 }),
   imdbYear: varchar("imdbYear", { length: 8 }),
+  storeAddedAt: timestamp("storeAddedAt").defaultNow().notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

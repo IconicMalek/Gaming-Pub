@@ -36,6 +36,13 @@
       "when": 1789232066554,
       "tag": "0004_free_rhodey",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1789306359850,
+      "tag": "0005_faithful_blink",
+      "breakpoints": true
     }
   ]
 }

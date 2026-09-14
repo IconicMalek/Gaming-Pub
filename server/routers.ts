@@ -67,6 +67,7 @@ const productInput = z.object({
   developer: z.string().max(160).optional(),
   publisher: z.string().max(160).optional(),
   releaseDate: z.string().max(32).optional(),
+  storeAddedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   imdbId: z.string().max(32).optional(),
   imdbUrl: z.string().url().optional(),
   imdbRating: z.number().min(0).max(10).nullable().optional(),

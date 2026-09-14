@@ -1,0 +1,1 @@
+ALTER TABLE `products` ADD `storeAddedAt` timestamp DEFAULT (now()) NOT NULL;

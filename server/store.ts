@@ -504,6 +504,7 @@ export async function upsertProduct(input: {
   imdbUrl?: string;
   imdbTitle?: string;
   imdbYear?: string;
+  storeAddedAt?: string;
   description?: string;
   genre?: string;
   platform?: string;
@@ -516,6 +517,8 @@ export async function upsertProduct(input: {
   if (input.stock !== null && input.stock !== undefined && (!Number.isInteger(input.stock) || input.stock < 0)) throw new Error("Stock must be a non-negative integer");
   if (input.menuOrder !== undefined && (!Number.isInteger(input.menuOrder) || input.menuOrder < 0)) throw new Error("Menu order must be a non-negative integer");
   if (input.imdbRating !== null && input.imdbRating !== undefined && (input.imdbRating < 0 || input.imdbRating > 10)) throw new Error("IMDb rating must be between 0 and 10");
+  const storeAddedAt = input.storeAddedAt ? new Date(`${input.storeAddedAt}T00:00:00.000Z`) : new Date();
+  if (Number.isNaN(storeAddedAt.getTime())) throw new Error("Store added date must be a valid date");
   validateImdb(input.imdbId, input.imdbUrl);
   const db = await requireDb();
   const data = {
@@ -525,7 +528,7 @@ export async function upsertProduct(input: {
     coverImage: input.coverImage ?? null, backgroundImage: input.backgroundImage ?? null, gallery: input.gallery ?? null,
     description: input.description ? sanitizeRichText(input.description) : null, genre: input.genre ?? null, platform: input.platform ?? null,
     size: input.size ?? null, developer: input.developer ?? null, publisher: input.publisher ?? null, releaseDate: input.releaseDate ?? null,
-    imdbId: input.imdbId ?? null, imdbUrl: input.imdbUrl ?? null, imdbRating: input.imdbRating === null || input.imdbRating === undefined ? null : input.imdbRating.toFixed(1), imdbTitle: input.imdbTitle ?? null, imdbYear: input.imdbYear ?? null,
+    imdbId: input.imdbId ?? null, imdbUrl: input.imdbUrl ?? null, imdbRating: input.imdbRating === null || input.imdbRating === undefined ? null : input.imdbRating.toFixed(1), imdbTitle: input.imdbTitle ?? null, imdbYear: input.imdbYear ?? null, storeAddedAt,
   } as const;
   if (input.id) {
     await db.update(products).set(data).where(eq(products.id, input.id));
