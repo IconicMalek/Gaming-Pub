@@ -58,6 +58,16 @@ test.describe("Gaming Pub storefront", () => {
     await expect(page.getByRole("link", { name: /Edit full listing/i })).toHaveCount(0);
   });
 
+  test("shares a product through WhatsApp with the current URL", async ({ page }) => {
+    await page.goto("/products/half-life-2");
+    await expect(page.getByTestId("whatsapp-share")).toBeVisible();
+    const popupPromise = page.waitForEvent("popup");
+    await page.getByTestId("whatsapp-share").click();
+    const popup = await popupPromise;
+    await expect(popup).toHaveURL(/(?:wa\.me|api\.whatsapp\.com)\/.*text=/);
+    await expect(popup).toHaveURL(/half-life-2/);
+  });
+
   test("switches the storefront context to Arabic RTL", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "العربية" }).click();

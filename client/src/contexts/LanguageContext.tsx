@@ -23,6 +23,7 @@ const translations = {
     requestTitle: "Request a title",
     search: "Search",
     cart: "Cart",
+    shareOnWhatsApp: "Share on WhatsApp",
     language: "العربية",
   },
   ar: {
@@ -37,6 +38,7 @@ const translations = {
     requestTitle: "اطلب عنواناً",
     search: "بحث",
     cart: "السلة",
+    shareOnWhatsApp: "مشاركة عبر واتساب",
     language: "English",
   },
 } as const;
